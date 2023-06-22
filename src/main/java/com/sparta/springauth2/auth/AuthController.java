@@ -1,5 +1,9 @@
 package com.sparta.springauth2.auth;
 
+import com.sparta.springauth2.entity.UserRoleEnum;
+import com.sparta.springauth2.jwt.JwtUtil;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwt;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -18,6 +22,13 @@ public class AuthController {
 
     // 범용적으로 사용될 상수이기 때문에 static & final & 대문자
     public static final String AUTHORIZATION_HEADER = "Authorization";
+    // JwtUtil 클래스 객체 생성
+    private final JwtUtil jwtUtil;
+
+    public AuthController(JwtUtil jwtUtil) {
+        this.jwtUtil = jwtUtil;
+    }
+
 
     @GetMapping("/create-cookie")
     public String createCookie(HttpServletResponse res) {
@@ -75,6 +86,40 @@ public class AuthController {
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e.getMessage());
         }
+    }
+    
+    @GetMapping("/create-jwt")
+    public String createJwt(HttpServletResponse res) {
+        // JWT 생성
+        String token = jwtUtil.createToken("Robbie", UserRoleEnum.USER);
+
+        // JWT 쿠키 저장
+        jwtUtil.addJwtToCookie(token, res);
+
+        return "createJwt : " + token;
+    }
+
+    @GetMapping("/get-jwt")
+    public String getJwt(@CookieValue(JwtUtil.AUTHORIZATION_HEADER) String tokenValue) {
+        // JWT 토큰 substring
+        String token = jwtUtil.substringToken(tokenValue);
+
+        // JWT 토큰 검증
+        if (!jwtUtil.validateToken(token)) {
+            throw new IllegalArgumentException("Token Error");
+        }
+
+        // 토큰에서 사용자 정보 가져오기 (Claims 타입)
+        Claims info = jwtUtil.getUserInfoFromToken(token);
+        // 사용자 username
+        String username = info.getSubject();
+        System.out.println("username = " + username);
+        // 사용자 권한
+        String authority = (String) info.get(JwtUtil.AUTHORIZATION_KEY);
+        System.out.println("authority = " + authority);
+
+        return "getJwt : " + username + ", " + authority;
+
     }
 
 
