@@ -5,6 +5,7 @@ import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.security.Key;
 import java.util.Base64;
@@ -98,7 +100,7 @@ public class JwtUtil {
         try {
             // Jwts.parserBuilder()를 사용해 JWT 파싱 가능
             // JWT가 위변조 되지 않았는지 secretKey(key) 값을 넣어 확인
-            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJwt(token);
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
         } catch (SecurityException | MalformedJwtException | SignatureException e) {
             logger.error("Invalid JWT signature, 유효하지 않은 JWT 서명입니다.");
@@ -117,10 +119,27 @@ public class JwtUtil {
         // JWT의 구조 중 Payload 부분에는 토큰에 담긴 정보가 들어있음
         // 여기에 담긴 정보의 한 조각을 claim이라고 부르고, 이는 key-value 한 쌍으로 구성됨. 토큰에는 여러 개의 클레임들을 넣을 수 있음
         // Jwts.parserBuilder()와 secretKey를 사용해 JWT의 Claims를 가져와 담겨 있는 사용자의 정보를 사용함
-        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJwt(token).getBody();
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
     }
 
-
-
-
+    // HttpServletRequest에서 Cookie Value: JWT 가져오기
+    public String getTokenFromRequest(HttpServletRequest req) {
+        // tokenValue가 존재하면 토큰 파싱, 검증을 진행하고 사용자 정보를 가져옴
+        // 가져온 사용자 username을 사용해서 DB에 사용자가 존재하는지 확인하고 존재하면 인증 완료
+        // 사용자 정보가 필요한 Controller API에 인증완료된 User 객체를 전달해줌
+        Cookie[] cookies = req.getCookies();
+        if(cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals(AUTHORIZATION_HEADER)) {
+                    try {
+                        // Encode 되어 넘어간 Value 다시 Decode
+                        return URLDecoder.decode(cookie.getValue(), "UTF-8");
+                    } catch (UnsupportedEncodingException e) {
+                        return null;
+                    }
+                }
+            }
+        }
+        return null;
+    }
 }
