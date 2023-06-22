@@ -3,7 +3,6 @@ package com.sparta.springauth2.auth;
 import com.sparta.springauth2.entity.UserRoleEnum;
 import com.sparta.springauth2.jwt.JwtUtil;
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwt;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
